@@ -1,6 +1,6 @@
 # Pastas que não devem ir para o Git
 node_modules/
-dist/
+
 
 # Arquivos de configuração sensíveis
 .env
