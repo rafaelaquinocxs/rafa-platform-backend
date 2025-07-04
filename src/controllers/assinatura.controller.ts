@@ -148,7 +148,7 @@ export const criarAssinatura = async (req: Request, res: Response) => {
     } catch (error) {
       // Criar novo cliente no ASAAS
       const customerData = {
-        name: dadosUsuario?.nome || user.name,
+        name: dadosUsuario?.nome || user.nome,
         email: user.email,
         phone: dadosUsuario?.telefone || '',
         mobilePhone: dadosUsuario?.celular || '',

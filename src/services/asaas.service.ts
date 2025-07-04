@@ -59,6 +59,7 @@ interface AsaasPayment {
   dueDate: string;
   description?: string;
   externalReference?: string;
+  status?: string;
   installmentCount?: number;
   installmentValue?: number;
   discount?: {

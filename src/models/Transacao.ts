@@ -335,5 +335,12 @@ TransacaoSchema.virtual('statusPtBr').get(function() {
 TransacaoSchema.set('toJSON', { virtuals: true });
 TransacaoSchema.set('toObject', { virtuals: true });
 
-export default mongoose.model<ITransacao>('Transacao', TransacaoSchema);
+interface TransacaoModel extends mongoose.Model<ITransacao> {
+  buscarPorUsuario(userId: string, limite?: number): Promise<ITransacao[]>;
+  buscarVencidas(): Promise<ITransacao[]>;
+  buscarParaReprocessar(): Promise<ITransacao[]>;
+  relatorioFinanceiro(dataInicio: Date, dataFim: Date): Promise<any[]>;
+}
+
+export default mongoose.model<ITransacao, TransacaoModel>('Transacao', TransacaoSchema);
 

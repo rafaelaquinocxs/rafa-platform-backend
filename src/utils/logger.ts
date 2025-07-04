@@ -227,16 +227,16 @@ class Logger {
   // Método para obter estatísticas de logs
   getLogStats(): any {
     const stats = {
-      totalErrors: 0,
-      totalWarnings: 0,
-      totalInfo: 0,
-      recentErrors: [],
-      logFiles: []
-    };
+  totalErrors: 0,
+  totalWarnings: 0,
+  totalInfo: 0,
+  recentErrors: [] as any[],
+  logFiles: [] as string[]
+};
 
     try {
       const files = fs.readdirSync(this.logDir);
-      stats.logFiles = files;
+      stats.logFiles = files as string[];
 
       // Ler arquivo de erros recentes
       const errorLogPath = path.join(this.logDir, 'error.log');
@@ -245,7 +245,7 @@ class Logger {
         const lines = errorLog.trim().split('\n').filter(line => line);
         
         stats.totalErrors = lines.length;
-        stats.recentErrors = lines.slice(-10).map(line => {
+        stats.recentErrors = lines.slice(-10).map((line: string) => {
           try {
             return JSON.parse(line);
           } catch {
