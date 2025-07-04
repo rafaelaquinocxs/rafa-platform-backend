@@ -206,7 +206,7 @@ export const criarAssinatura = async (req: Request, res: Response) => {
     try {
       const subscriptionData = {
         customer: asaasCustomerId,
-        billingType: asaasService.convertBillingType(metodoPagamento),
+        billingType: asaasService.convertBillingType(metodoPagamento) as 'CREDIT_CARD' | 'BOLETO' | 'PIX' | 'UNDEFINED',
         value: plano.preco,
         nextDueDate: proximoVencimento.toISOString().split('T')[0],
         cycle: asaasService.convertPlanCycleToAsaas(plano.periodo),
@@ -238,7 +238,7 @@ export const criarAssinatura = async (req: Request, res: Response) => {
       novaAssinatura.status = 'ativa';
       await novaAssinatura.save();
 
-      await novaAssinatura.adicionarHistorico(
+      await (novaAssinatura as any).adicionarHistorico(
         'ASSINATURA_CRIADA', 
         `Assinatura criada no ASAAS com ID: ${asaasSubscription.id}`,
         plano.preco
@@ -248,7 +248,7 @@ export const criarAssinatura = async (req: Request, res: Response) => {
       console.error('Erro ao criar assinatura no ASAAS:', asaasError);
       
       // Marcar assinatura como com erro
-      await novaAssinatura.adicionarHistorico(
+      await (novaAssinatura as any).adicionarHistorico(
         'ERRO_ASAAS', 
         `Erro ao criar assinatura no ASAAS: ${asaasError.message}`
       );
@@ -305,7 +305,7 @@ export const cancelarAssinatura = async (req: Request, res: Response) => {
     }
 
     // Cancelar localmente
-    await assinatura.cancelar(motivo || 'Cancelamento solicitado pelo usuário');
+    await (assinatura as any).cancelar(motivo || 'Cancelamento solicitado pelo usuário');
 
     res.json({ 
       message: 'Assinatura cancelada com sucesso',
@@ -359,8 +359,8 @@ export const reprocessarPagamento = async (req: Request, res: Response) => {
       
       // Atualizar status local baseado no ASAAS
       if (paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED') {
-        await transacao.receberPagamento(new Date());
-        await transacao.adicionarWebhookEvent('REPROCESSAMENTO_SUCESSO', { status: paymentStatus });
+        await (transacao as any).receberPagamento(new Date());
+        await (transacao as any).adicionarWebhookEvent('REPROCESSAMENTO_SUCESSO', { status: paymentStatus });
         
         res.json({ 
           message: 'Pagamento confirmado com sucesso',
@@ -376,7 +376,7 @@ export const reprocessarPagamento = async (req: Request, res: Response) => {
       
     } catch (asaasError: any) {
       console.error('Erro ao reprocessar no ASAAS:', asaasError);
-      await transacao.adicionarWebhookEvent('ERRO_REPROCESSAMENTO', { error: asaasError.message });
+      await (transacao as any).adicionarWebhookEvent('ERRO_REPROCESSAMENTO', { error: asaasError.message });
       
       res.status(400).json({ 
         message: 'Erro ao reprocessar pagamento',

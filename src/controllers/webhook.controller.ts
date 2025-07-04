@@ -153,7 +153,7 @@ async function processarPagamentoCriado(event: AsaasWebhookEvent) {
     });
 
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_CREATED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_CREATED', event);
 
     // Atualizar assinatura
     await assinatura.adicionarHistorico(
@@ -179,7 +179,7 @@ async function processarPagamentoAguardando(event: AsaasWebhookEvent) {
 
     transacao.status = 'pending';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_AWAITING_PAYMENT', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_AWAITING_PAYMENT', event);
 
     console.log(`[WEBHOOK] Pagamento aguardando: ${event.payment.id}`);
 
@@ -199,13 +199,13 @@ async function processarPagamentoConfirmado(event: AsaasWebhookEvent) {
     if (!transacao) return;
 
     // Atualizar transação
-    await transacao.confirmarPagamento(
+    await (transacao as any).confirmarPagamento(
       new Date(event.payment.paymentDate || event.payment.clientPaymentDate || Date.now()),
       event.payment.netValue,
       event.payment.value - event.payment.netValue
     );
 
-    await transacao.adicionarWebhookEvent('PAYMENT_CONFIRMED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_CONFIRMED', event);
 
     // Atualizar assinatura
     const assinatura = transacao.assinaturaId as any;
@@ -248,11 +248,11 @@ async function processarPagamentoRecebido(event: AsaasWebhookEvent) {
     const transacao = await Transacao.findOne({ asaasPaymentId: event.payment.id });
     if (!transacao) return;
 
-    await transacao.receberPagamento(
+    await (transacao as any).receberPagamento(
       new Date(event.payment.paymentDate || event.payment.clientPaymentDate || Date.now())
     );
 
-    await transacao.adicionarWebhookEvent('PAYMENT_RECEIVED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_RECEIVED', event);
 
     console.log(`[WEBHOOK] Pagamento recebido: ${event.payment.id}`);
 
@@ -272,8 +272,8 @@ async function processarPagamentoVencido(event: AsaasWebhookEvent) {
     if (!transacao) return;
 
     // Marcar transação como vencida
-    await transacao.marcarVencida();
-    await transacao.adicionarWebhookEvent('PAYMENT_OVERDUE', event);
+    await (transacao as any).marcarVencida();
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_OVERDUE', event);
 
     // Suspender assinatura se muitas tentativas
     const assinatura = transacao.assinaturaId as any;
@@ -298,7 +298,7 @@ async function processarPagamentoDeletado(event: AsaasWebhookEvent) {
 
     transacao.observacoes = 'Pagamento deletado no ASAAS';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_DELETED', event);
+    await (transacao as any).marcarVencida('PAYMENT_DELETED', event);
 
     console.log(`[WEBHOOK] Pagamento deletado: ${event.payment.id}`);
 
@@ -318,7 +318,7 @@ async function processarPagamentoRestaurado(event: AsaasWebhookEvent) {
     transacao.status = 'pending';
     transacao.observacoes = 'Pagamento restaurado no ASAAS';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_RESTORED', event);
+    await (transacao as any).marcarVencida('PAYMENT_RESTORED', event);
 
     console.log(`[WEBHOOK] Pagamento restaurado: ${event.payment.id}`);
 
@@ -335,8 +335,8 @@ async function processarPagamentoReembolsado(event: AsaasWebhookEvent) {
     const transacao = await Transacao.findOne({ asaasPaymentId: event.payment.id });
     if (!transacao) return;
 
-    await transacao.processarReembolso('Reembolso processado pelo ASAAS');
-    await transacao.adicionarWebhookEvent('PAYMENT_REFUNDED', event);
+    await transacao.(transacao as any).processarReembolso('Reembolso processado pelo ASAAS');
+    await (transacao as any).marcarVencida('PAYMENT_REFUNDED', event);
 
     console.log(`[WEBHOOK] Pagamento reembolsado: ${event.payment.id}`);
 
@@ -357,7 +357,7 @@ async function processarPagamentoRecebidoDinheiro(event: AsaasWebhookEvent) {
     transacao.dataPagamento = new Date();
     transacao.dataConfirmacao = new Date();
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_RECEIVED_IN_CASH', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_RECEIVED_IN_CASH', event);
 
     console.log(`[WEBHOOK] Pagamento recebido em dinheiro: ${event.payment.id}`);
 
@@ -377,7 +377,7 @@ async function processarChargebackSolicitado(event: AsaasWebhookEvent) {
     transacao.status = 'chargeback_requested';
     transacao.motivoFalha = 'Chargeback solicitado';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_CHARGEBACK_REQUESTED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_CHARGEBACK_REQUESTED', event);
 
     console.log(`[WEBHOOK] Chargeback solicitado: ${event.payment.id}`);
 
@@ -396,7 +396,7 @@ async function processarChargebackDisputa(event: AsaasWebhookEvent) {
 
     transacao.status = 'chargeback_dispute';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_CHARGEBACK_DISPUTE', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_CHARGEBACK_DISPUTE', event);
 
     console.log(`[WEBHOOK] Disputa de chargeback: ${event.payment.id}`);
 
@@ -415,7 +415,7 @@ async function processarAguardandoReversaoChargeback(event: AsaasWebhookEvent) {
 
     transacao.status = 'awaiting_chargeback_reversal';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_AWAITING_CHARGEBACK_REVERSAL', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_AWAITING_CHARGEBACK_REVERSAL', event);
 
     console.log(`[WEBHOOK] Aguardando reversão de chargeback: ${event.payment.id}`);
 
@@ -434,7 +434,7 @@ async function processarCobrancaSolicitada(event: AsaasWebhookEvent) {
 
     transacao.status = 'dunning_requested';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_DUNNING_REQUESTED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_DUNNING_REQUESTED', event);
 
     console.log(`[WEBHOOK] Cobrança solicitada: ${event.payment.id}`);
 
@@ -453,7 +453,7 @@ async function processarCobrancaRecebida(event: AsaasWebhookEvent) {
 
     transacao.status = 'dunning_received';
     await transacao.save();
-    await transacao.adicionarWebhookEvent('PAYMENT_DUNNING_RECEIVED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_DUNNING_RECEIVED', event);
 
     console.log(`[WEBHOOK] Cobrança recebida: ${event.payment.id}`);
 
@@ -470,7 +470,7 @@ async function processarBoletoVisualizado(event: AsaasWebhookEvent) {
     const transacao = await Transacao.findOne({ asaasPaymentId: event.payment.id });
     if (!transacao) return;
 
-    await transacao.adicionarWebhookEvent('PAYMENT_BANK_SLIP_VIEWED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_BANK_SLIP_VIEWED', event);
 
     console.log(`[WEBHOOK] Boleto visualizado: ${event.payment.id}`);
 
@@ -487,7 +487,7 @@ async function processarCheckoutVisualizado(event: AsaasWebhookEvent) {
     const transacao = await Transacao.findOne({ asaasPaymentId: event.payment.id });
     if (!transacao) return;
 
-    await transacao.adicionarWebhookEvent('PAYMENT_CHECKOUT_VIEWED', event);
+    await (transacao as any).adicionarWebhookEvent('PAYMENT_CHECKOUT_VIEWED', event);
 
     console.log(`[WEBHOOK] Checkout visualizado: ${event.payment.id}`);
 
