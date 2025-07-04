@@ -335,7 +335,7 @@ async function processarPagamentoReembolsado(event: AsaasWebhookEvent) {
     const transacao = await Transacao.findOne({ asaasPaymentId: event.payment.id });
     if (!transacao) return;
 
-    await (transacao as any).processarReembolso(motivo);
+    await (transacao as any).processarReembolso('Reembolso processado via webhook');
     await (transacao as any).marcarVencida('PAYMENT_REFUNDED', event);
 
     console.log(`[WEBHOOK] Pagamento reembolsado: ${event.payment.id}`);

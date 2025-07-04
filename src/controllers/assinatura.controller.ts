@@ -209,7 +209,7 @@ export const criarAssinatura = async (req: Request, res: Response) => {
         billingType: asaasService.convertBillingType(metodoPagamento) as 'CREDIT_CARD' | 'BOLETO' | 'PIX' | 'UNDEFINED',
         value: plano.preco,
         nextDueDate: proximoVencimento.toISOString().split('T')[0],
-        cycle: asaasService.convertPlanCycleToAsaas(plano.periodo),
+        cycle: asaasService.convertPlanCycleToAsaas(plano.periodo) as 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY' | 'WEEKLY' | 'BIWEEKLY',
         description: `Assinatura ${plano.titulo} - Plataforma RAFA`,
         externalReference: novaAssinatura._id.toString(),
         creditCard: dadosCartao ? {
