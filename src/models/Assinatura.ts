@@ -1,6 +1,7 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
-export interface IAssinatura extends mongoose.Document {
+// Interface com os campos da assinatura + métodos
+export interface IAssinatura extends Document {
   userId: mongoose.Types.ObjectId;
   planoId: string;
   asaasCustomerId: string;
@@ -26,12 +27,8 @@ export interface IAssinatura extends mongoose.Document {
     detalhes: string;
     valor?: number;
   }>;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
-// Métodos de instância
-interface AssinaturaMethods {
+  // Métodos personalizados
   adicionarHistorico(evento: string, detalhes: string, valor?: number): Promise<IAssinatura>;
   ativar(): Promise<IAssinatura>;
   cancelar(motivo?: string): Promise<IAssinatura>;
@@ -39,16 +36,16 @@ interface AssinaturaMethods {
   renovar(proximaData: Date): Promise<IAssinatura>;
 }
 
-// Métodos estáticos
-interface AssinaturaModel extends mongoose.Model<IAssinatura, {}, AssinaturaMethods> {
+// Interface para métodos estáticos
+export interface AssinaturaModel extends Model<IAssinatura> {
   buscarPorUsuario(userId: string): Promise<IAssinatura | null>;
   buscarVencidas(): Promise<IAssinatura[]>;
   buscarParaCobranca(): Promise<IAssinatura[]>;
 }
 
-const AssinaturaSchema = new mongoose.Schema<IAssinatura, AssinaturaModel>({
+const AssinaturaSchema = new Schema<IAssinatura, AssinaturaModel>({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     index: true
@@ -74,24 +71,10 @@ const AssinaturaSchema = new mongoose.Schema<IAssinatura, AssinaturaModel>({
     default: 'pendente',
     index: true
   },
-  dataInicio: {
-    type: Date,
-    required: true
-  },
-  dataFim: {
-    type: Date,
-    required: true
-  },
-  proximoVencimento: {
-    type: Date,
-    required: true,
-    index: true
-  },
-  valorMensal: {
-    type: Number,
-    required: true,
-    min: 0
-  },
+  dataInicio: { type: Date, required: true },
+  dataFim: { type: Date, required: true },
+  proximoVencimento: { type: Date, required: true, index: true },
+  valorMensal: { type: Number, required: true, min: 0 },
   metodoPagamento: {
     type: String,
     enum: ['CREDIT_CARD', 'BOLETO', 'PIX'],
@@ -102,39 +85,19 @@ const AssinaturaSchema = new mongoose.Schema<IAssinatura, AssinaturaModel>({
     enum: ['MONTHLY', 'QUARTERLY', 'SEMIANNUALLY', 'YEARLY'],
     required: true
   },
-  tentativasPagamento: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  ultimaCobranca: {
-    type: Date
-  },
-  proximaCobranca: {
-    type: Date,
-    index: true
-  },
+  tentativasPagamento: { type: Number, default: 0, min: 0 },
+  ultimaCobranca: { type: Date },
+  proximaCobranca: { type: Date, index: true },
   dadosCartao: {
     bandeira: String,
     ultimosDigitos: String,
     nomePortador: String
   },
   historico: [{
-    data: {
-      type: Date,
-      default: Date.now
-    },
-    evento: {
-      type: String,
-      required: true
-    },
-    detalhes: {
-      type: String,
-      required: true
-    },
-    valor: {
-      type: Number
-    }
+    data: { type: Date, default: Date.now },
+    evento: { type: String, required: true },
+    detalhes: { type: String, required: true },
+    valor: { type: Number }
   }]
 }, {
   timestamps: true,
@@ -147,7 +110,11 @@ AssinaturaSchema.index({ asaasCustomerId: 1, status: 1 });
 AssinaturaSchema.index({ proximoVencimento: 1, status: 1 });
 
 // Métodos de instância
-AssinaturaSchema.methods.adicionarHistorico = function (evento: string, detalhes: string, valor?: number) {
+AssinaturaSchema.methods.adicionarHistorico = async function (
+  evento: string,
+  detalhes: string,
+  valor?: number
+): Promise<IAssinatura> {
   this.historico.push({
     data: new Date(),
     evento,
@@ -157,35 +124,35 @@ AssinaturaSchema.methods.adicionarHistorico = function (evento: string, detalhes
   return this.save();
 };
 
-AssinaturaSchema.methods.ativar = function () {
+AssinaturaSchema.methods.ativar = function (): Promise<IAssinatura> {
   this.status = 'ativa';
   return this.adicionarHistorico('ATIVACAO', 'Assinatura ativada com sucesso');
 };
 
-AssinaturaSchema.methods.cancelar = function (motivo: string = 'Cancelamento solicitado pelo usuário') {
+AssinaturaSchema.methods.cancelar = function (motivo = 'Cancelamento solicitado pelo usuário'): Promise<IAssinatura> {
   this.status = 'cancelada';
   return this.adicionarHistorico('CANCELAMENTO', motivo);
 };
 
-AssinaturaSchema.methods.suspender = function (motivo: string = 'Pagamento em atraso') {
+AssinaturaSchema.methods.suspender = function (motivo = 'Pagamento em atraso'): Promise<IAssinatura> {
   this.status = 'suspensa';
   return this.adicionarHistorico('SUSPENSAO', motivo);
 };
 
-AssinaturaSchema.methods.renovar = function (proximaData: Date) {
+AssinaturaSchema.methods.renovar = function (proximaData: Date): Promise<IAssinatura> {
   this.proximoVencimento = proximaData;
   this.tentativasPagamento = 0;
   return this.adicionarHistorico('RENOVACAO', `Assinatura renovada até ${proximaData.toLocaleDateString('pt-BR')}`);
 };
 
 // Métodos estáticos
-AssinaturaSchema.statics.buscarPorUsuario = function (userId: string) {
+AssinaturaSchema.statics.buscarPorUsuario = function (userId: string): Promise<IAssinatura | null> {
   return this.findOne({ userId, status: { $in: ['ativa', 'pendente'] } })
     .populate('userId', 'name email')
     .sort({ createdAt: -1 });
 };
 
-AssinaturaSchema.statics.buscarVencidas = function () {
+AssinaturaSchema.statics.buscarVencidas = function (): Promise<IAssinatura[]> {
   const hoje = new Date();
   return this.find({
     status: 'ativa',
@@ -193,10 +160,9 @@ AssinaturaSchema.statics.buscarVencidas = function () {
   }).populate('userId', 'name email');
 };
 
-AssinaturaSchema.statics.buscarParaCobranca = function () {
+AssinaturaSchema.statics.buscarParaCobranca = function (): Promise<IAssinatura[]> {
   const amanha = new Date();
   amanha.setDate(amanha.getDate() + 1);
-
   return this.find({
     status: 'ativa',
     proximaCobranca: { $lte: amanha }
@@ -204,26 +170,19 @@ AssinaturaSchema.statics.buscarParaCobranca = function () {
 };
 
 // Middleware pre-save
-AssinaturaSchema.pre('save', function (next) {
+AssinaturaSchema.pre<IAssinatura>('save', async function (next) {
   if (this.isNew) {
-    this.historico.push({
-      data: new Date(),
-      evento: 'CRIACAO',
-      detalhes: 'Assinatura criada',
-      valor: this.valorMensal
-    });
+    await this.adicionarHistorico('CRIACAO', 'Assinatura criada', this.valorMensal);
   }
   next();
 });
 
-
-
 // Virtuals
-AssinaturaSchema.virtual('estaVencida').get(function () {
+AssinaturaSchema.virtual('estaVencida').get(function (this: IAssinatura) {
   return this.status === 'ativa' && this.proximoVencimento < new Date();
 });
 
-AssinaturaSchema.virtual('diasAteVencimento').get(function () {
+AssinaturaSchema.virtual('diasAteVencimento').get(function (this: IAssinatura) {
   const hoje = new Date();
   const vencimento = new Date(this.proximoVencimento);
   const diffTime = vencimento.getTime() - hoje.getTime();
